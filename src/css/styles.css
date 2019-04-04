@@ -1,0 +1,56 @@
+body {
+    background-color: #a5b586;
+    display: grid;
+    grid-gap: 5em;
+    grid-template-areas: 'D I I I'
+                         'D A A T'
+                         'D E E T'
+                         'D P P T';
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+th, td {
+    text-align: left;
+    padding: .5em;
+}
+  
+tr:nth-child(even) {
+    background-color: #f2f2f2
+}
+
+.card {
+    background-color: white;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px;
+}
+  
+.card:hover {
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+  
+.container {
+    padding: 1em;
+}
+
+.D { grid-area: D; }
+.I { grid-area: I; }
+.A { grid-area: A; }
+.E { grid-area: E; }
+.P { grid-area: P; }
+.T { grid-area: T; }
