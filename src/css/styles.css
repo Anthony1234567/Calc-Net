@@ -1,11 +1,14 @@
 body {
-    background-color: #a5b586;
+    background-color: #F4F6F9;
     display: grid;
-    grid-gap: 5em;
-    grid-template-areas: 'D I I I'
-                         'D A A T'
-                         'D E E T'
-                         'D P P T';
+    grid-gap: 1em;
+    grid-template-areas: 'I . . . . . . . D'
+                         'I . . . . . . . D'
+                         'I . A . . . T . D'
+                         '. . . . P . T . D'
+                         '. . E . . . T . D'
+                         '. . . . . . . . D'
+                         '. . . . . . . . D';
 }
 
 table {
@@ -19,9 +22,25 @@ input {
     width: 100%;
     padding: 12px 20px;
     margin: 8px 0;
-    display: inline-block;
+    display: block;
     border: 1px solid #ccc;
     box-sizing: border-box;
+}
+
+button {
+    border: none;
+    padding: 15px 0;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    width: 10em;
+    background-color: #49581A;
+    color: white;
+}
+  
+button:hover {
+    background-color: #394a0a;
 }
 
 th, td {
