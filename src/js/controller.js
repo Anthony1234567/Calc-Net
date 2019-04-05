@@ -12,8 +12,8 @@ class Machine {
         this.busy = false;
     }
 
-    async sendMessage(target, message) {
-
+    async sendMessage(target, message, callback) {
+        return sendMessage(target, message, callback);
     }
 }
 
@@ -24,25 +24,32 @@ class Machine {
  * and then makes the next statement current.
  */
 class MachineI extends Machine {
-    constructor() {
+    constructor(statements) {
         super('I');
+
+        this.statements;
     }
 
     async calculate() {
         console.log('Calculating...');
 
-        busy = true;
-
-        const statements = [
-            document.getElementById('1').value,
-            document.getElementById('2').value,
-            document.getElementById('3').value,
-            document.getElementById('4').value,
-            document.getElementById('5').value
+        this.busy = true;
+        this.statements = [
+            { value: document.getElementById('1').value, result: undefined },
+            { value: document.getElementById('2').value, result: undefined },
+            { value: document.getElementById('3').value, result: undefined },
+            { value: document.getElementById('4').value, result: undefined },
+            { value: document.getElementById('5').value, result: undefined }
         ];
+
+        console.log('Statements: ' + this.statements);
         
-        statements.forEach(statement => {
-            sendMessage(machineA, statement);
+        this.statements.forEach(statement => {
+            if (statement.value) {
+                this.sendMessage('A', document.getElementById('1').value, function(result) { 
+                    console.log(result); 
+                });
+            }
         });
     }
 }
@@ -58,8 +65,13 @@ class MachineA extends Machine {
         super('A');
     }
 
-    async split(statement) {
-
+    split(statement, callback) {
+        if (this.busy) {
+            return 'NAK';
+        } else {
+            
+            return 'ACK'
+        }
     }
 }
 
@@ -75,8 +87,12 @@ class MachineE extends Machine {
         super('E');
     }
 
-    async split(statement) {
-
+    split(statement, callback) {
+        if (this.busy) {
+            return 'NAK'
+        } else {
+            return 'ACK'
+        }
     }
 }
 
@@ -140,4 +156,27 @@ const machineD = new MachineD();
 
 function calculate() {
     machineI.calculate();
+}
+
+function sendMessage(target, message, callback) {
+    var result;
+
+    switch (target) {
+        case 'I':
+            break;
+        case 'A':
+            result = machineA.split(message, callback);
+
+            break;
+        case 'E':
+            break;
+        case 'T':
+            break;
+        case 'P':
+            break;
+        case 'D':
+            break;
+    }
+
+    callback('Result of message: ' + message + ' is ' + result);
 }
