@@ -188,7 +188,7 @@ class MachineP extends Machine {
  */
 class MachineD extends Machine {
     constructor() {
-        super('P');
+        super('D');
 
         this.table = new Map();
     }
@@ -217,15 +217,55 @@ class MachineD extends Machine {
     }
 
     async load(variable, callback) {
+        this.isBusy = true;
+
         callback(table.get(variable));
+
+        this.isBusy = false;
     }
 
     async store(variable, value, callback) {
-        table.put(variable, value);
+        this.isBusy = true;
+        this.table.set(variable, value);
+
+        this.updatePage(variable, value);
         callback('STORED');
+
+        this.isBusy = false;
+    }
+
+    async updatePage(variable, value) {
+        if (document.getElementById('emptyTableMessage')) {
+            // Clear empty map message
+            document.getElementById('emptyTableMessage').remove();
+        }
+
+        const tableElement = document.getElementById('variableTable');
+
+console.log(tableElement.querySelectorAll('tr'));
+console.log(Array.from(tableElement.querySelectorAll('tr')));
+
+        const row = Array.from(tableElement.querySelectorAll('tr')).find(row => row.id === ('variable' + variable));
+
+console.log(row);
+
+
+        // Row for variable already exists
+        if (row) {
+            row.querySelector('td')[1].innterText = value;
+        } else {
+            let rowElement = document.createElement('tr');
+            rowElement.Id = 'variable' + variable;
+            rowElement.innerHTML = '<td>' + variable + '</td>' + '<td>' + value + '</td>';
+
+            tableElement.appendChild(rowElement);
+        }
     }
 }
 
+/**
+ * Contains message type and date to pass between machines
+ */
 class Message {
     constructor(type, data) {
         this.type = type;
@@ -241,10 +281,20 @@ const machineT2 = new MachineT();
 const machineP = new MachineP();
 const machineD = new MachineD();
 
+/**
+ * Onclick handler. Starts processing user inputs
+ */
 function calculate() {
     machineI.calculate();
 }
 
+/**
+ * Handles/directs the message sending between machines
+ * @param {String} target: Target machine type.  
+ * @param {Message} message: Message containing type and data
+ * @param {Function} callback: Callback method to call when reciever is done processing message
+ * @returns Result of reciever acknowledgement [NAK | ACK]
+ */
 function sendMessage(target, message, callback) {
     var result;
 

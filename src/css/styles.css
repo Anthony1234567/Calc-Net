@@ -16,6 +16,7 @@ table {
     border-spacing: 0;
     width: 100%;
     border: 1px solid #ddd;
+    margin: 8px 0;
 }
 
 input {
