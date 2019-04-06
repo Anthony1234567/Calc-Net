@@ -46,7 +46,7 @@ class MachineI extends Machine {
     }
 
     calculateStatement(statement) {
-        if (this.sendMessage('A', statement.value, result => { 
+        if (this.sendMessage('A', new Message('STATEMENT', statement.value), result => { 
                 console.log(result); 
                 this.isBusy = false;
             }) === 'NAK') {
@@ -71,7 +71,7 @@ class MachineA extends Machine {
             return 'NAK';
         } else {
             setTimeout(() => { 
-                this.split(message, callback);
+                this.split(message.data, callback);
             }, 1000);
 
             this.isBusy = true;
@@ -81,16 +81,16 @@ class MachineA extends Machine {
     }
 
     async split(statement, callback) {
-        const tokens = statement.split('=');
+        const sides = statement.split('=');
 
-        if (this.sendMessage('E', tokens[1], result => { 
+        if (this.sendMessage('E', new Message('RHS', sides[1]), result => { 
                 console.log(result); 
                 this.isBusy = false;
             }) === 'NAK') {
             this.isBusy = false;
         }
 
-        callback('MachineA done! ' + tokens);
+        callback('MachineA done! ' + sides);
     }
 }
 
@@ -113,7 +113,7 @@ class MachineE extends Machine {
             return 'NAK'
         } else {
             setTimeout(() => { 
-                this.split(message, callback);
+                this.split(message.data, callback);
             }, 1000);
 
             this.isBusy = true;
@@ -122,17 +122,18 @@ class MachineE extends Machine {
         }
     }
 
-    async split(statement, callback) {
-        const tokens = statement.split('+');
+    async split(expression, callback) {
+        const terms = expression.split('+');
 
-        if (this.sendMessage('T', tokens[1], result => { 
+        // TODO: Iterate terms and send individual messages to T Machines
+        if (this.sendMessage('T', new Message('TERM', terms[1]), result => { 
                 console.log(result); 
                 this.isBusy = false;
             }) === 'NAK') {
             this.isBusy = false;
         }
 
-        callback('MachineE done! ' + tokens);
+        callback('MachineE done! ' + terms);
     }
 }
 
@@ -154,7 +155,7 @@ class MachineT extends Machine {
             return 'NAK';
         } else {
             setTimeout(() => { 
-                this.split(message, callback);
+                this.split(message.data, callback);
             }, 1000);
 
             this.isBusy = true;
@@ -163,10 +164,10 @@ class MachineT extends Machine {
         }
     }
 
-    async split(statement, callback) {
-        const tokens = statement.split('*');
+    async split(term, callback) {
+        const factors = term.split('*');
 
-        callback('MachineT done! ' + tokens);
+        callback('MachineT done! ' + factors);
     }
 }
 
