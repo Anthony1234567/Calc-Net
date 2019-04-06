@@ -6,6 +6,7 @@ CECS 545: Software Architecture - Calc Net
 * Supported Operators: `+`, `*`, `^`
 * At least 1 equation per unique variable
 * At least `n-1` variables explicitly set 
+* Only same case variables across input(s)
 
 ## Sample equation system
 ```
