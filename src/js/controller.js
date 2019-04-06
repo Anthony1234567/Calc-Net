@@ -9,10 +9,10 @@
 class Machine {
     constructor(type) {
         this.type = type
-        this.busy = false;
+        this.isBusy = false;
     }
 
-    async sendMessage(target, message, callback) {
+    sendMessage(target, message, callback) {
         return sendMessage(target, message, callback);
     }
 }
@@ -26,14 +26,10 @@ class Machine {
 class MachineI extends Machine {
     constructor(statements) {
         super('I');
-
-        this.statements;
     }
 
     async calculate() {
-        console.log('Calculating...');
-
-        this.busy = true;
+        this.isBusy = true;
         this.statements = [
             { value: document.getElementById('1').value, result: undefined },
             { value: document.getElementById('2').value, result: undefined },
@@ -41,22 +37,27 @@ class MachineI extends Machine {
             { value: document.getElementById('4').value, result: undefined },
             { value: document.getElementById('5').value, result: undefined }
         ];
-
-        console.log('Statements: ' + this.statements);
         
-        this.statements.forEach(statement => {
-            if (statement.value) {
-                this.sendMessage('A', document.getElementById('1').value, function(result) { 
-                    console.log(result); 
-                });
+        for (var index = 0; index < 5; index++) {
+            if (this.statements[index].value) {
+                this.calculateStatement(this.statements[index]);
             }
-        });
+        }
+    }
+
+    calculateStatement(statement) {
+        if (this.sendMessage('A', statement.value, result => { 
+                console.log(result); 
+                this.isBusy = false;
+            }) === 'NAK') {
+            this.isBusy = false;
+        }
     }
 }
 
 /**
  * Assignment machine:
- * It can take an assignment statement (as above), split off the RHS and send it to an E machine, 
+ * It can take an assignment statement, split off the RHS and send it to an E machine, 
  * get the E result value, and send a Store message to a D machine. On getting the Stored result message, 
  * the A machine returns the value to the I machine and becomes ready for another statement.
  */
@@ -65,13 +66,29 @@ class MachineA extends Machine {
         super('A');
     }
 
-    split(statement, callback) {
-        if (this.busy) {
+    acknowledge(message, callback) {
+        if (this.isBusy) {
             return 'NAK';
         } else {
-            
+            setTimeout(() => { 
+                this.split(message, callback);
+            }, 1000);
+
             return 'ACK'
         }
+    }
+
+    async split(statement, callback) {
+        const tokens = statement.split('=');
+
+        if (this.sendMessage('E', tokens[1], result => { 
+                console.log(result); 
+                this.isBusy = false;
+            }) === 'NAK') {
+            this.isBusy = false;
+        }
+
+        callback('MachineA done! ' + tokens);
     }
 }
 
@@ -85,14 +102,33 @@ class MachineA extends Machine {
 class MachineE extends Machine {
     constructor() {
         super('E');
+        
+        this.terms = []
     }
 
-    split(statement, callback) {
-        if (this.busy) {
+    acknowledge(message, callback) {
+        if (this.isBusy) {
             return 'NAK'
         } else {
+            setTimeout(() => { 
+                this.split(message, callback);
+            }, 1000);
+
             return 'ACK'
         }
+    }
+
+    async split(statement, callback) {
+        const tokens = statement.split('+');
+
+        if (this.sendMessage('T', tokens[1], result => { 
+                console.log(result); 
+                this.isBusy = false;
+            }) === 'NAK') {
+            this.isBusy = false;
+        }
+
+        callback('MachineE done! ' + tokens);
     }
 }
 
@@ -109,8 +145,22 @@ class MachineT extends Machine {
         super('T');
     }
 
-    async split(statement) {
+    acknowledge(message, callback) {
+        if (this.isBusy) {
+            return 'NAK';
+        } else {
+            setTimeout(() => { 
+                this.split(message, callback);
+            }, 1000);
 
+            return 'ACK'
+        }
+    }
+
+    async split(statement, callback) {
+        const tokens = statement.split('*');
+
+        callback('MachineT done! ' + tokens);
     }
 }
 
@@ -139,10 +189,47 @@ class MachineP extends Machine {
 class MachineD extends Machine {
     constructor() {
         super('P');
+
+        this.table = new Map();
     }
 
-    async split(statement) {
+    acknowledge(message, callback) {
+        if (this.isBusy) {
+            return 'NAK';
+        } else {
+            setTimeout(() => { 
+                switch (message.type) {
+                    case 'LOAD':
+                        this.load(message.data.variable, callback);
 
+                        break;
+                    case 'STORE':
+                        this.store(message.data.variable, message.data.value, callback);
+
+                        break;
+                    default:
+                        console.warn('Unexpected message type: ' + message.type);
+                }
+            }, 1000);
+
+            return 'ACK'
+        }
+    }
+
+    async load(variable, callback) {
+        callback(table.get(variable));
+    }
+
+    async store(variable, value, callback) {
+        table.put(variable, value);
+        callback('STORED');
+    }
+}
+
+class Message {
+    constructor(type, data) {
+        this.type = type;
+        this.data = data;
     }
 }
 
@@ -165,18 +252,32 @@ function sendMessage(target, message, callback) {
         case 'I':
             break;
         case 'A':
-            result = machineA.split(message, callback);
+            result = machineA.acknowledge(message, callback);
 
             break;
         case 'E':
+            result = machineE.acknowledge(message, callback);
+
             break;
-        case 'T':
+        case 'T': // We have two copies of the T machine, but only one copy of the other kinds.
+            if (machineT1.acknowledge(message, callback) === 'ACK') {
+                result = 'ACK';
+            } else if (machineT2.acknowledge(message, callback) === 'ACK') {
+                result = 'ACK'
+            } else {
+                result = 'NAK';
+            }
+
             break;
         case 'P':
             break;
         case 'D':
+            result = machineD.acknowledge(message, callback);
+        
             break;
+        default:
+            console.warn('Unexpected target: ' + target);
     }
 
-    callback('Result of message: ' + message + ' is ' + result);
+    return result;
 }
