@@ -240,25 +240,18 @@ class MachineD extends Machine {
             document.getElementById('emptyTableMessage').remove();
         }
 
-        const tableElement = document.getElementById('variableTable');
-
-console.log(tableElement.querySelectorAll('tr'));
-console.log(Array.from(tableElement.querySelectorAll('tr')));
-
-        const row = Array.from(tableElement.querySelectorAll('tr')).find(row => row.id === ('variable' + variable));
-
-console.log(row);
-
+        const tableBody = document.getElementById('variableTable').querySelector('tbody');
+        const row = Array.from(tableBody.querySelectorAll('tr')).find(row => row.id === ('variable' + variable));
 
         // Row for variable already exists
         if (row) {
-            row.querySelector('td')[1].innterText = value;
+            row.querySelectorAll('td')[1].innerText = value;
         } else {
             let rowElement = document.createElement('tr');
-            rowElement.Id = 'variable' + variable;
+            rowElement.id = 'variable' + variable;
             rowElement.innerHTML = '<td>' + variable + '</td>' + '<td>' + value + '</td>';
 
-            tableElement.appendChild(rowElement);
+            tableBody.appendChild(rowElement);
         }
     }
 }
