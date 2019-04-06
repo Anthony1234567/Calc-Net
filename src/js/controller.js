@@ -24,7 +24,7 @@ class Machine {
  * and then makes the next statement current.
  */
 class MachineI extends Machine {
-    constructor(statements) {
+    constructor() {
         super('I');
     }
 
@@ -74,6 +74,8 @@ class MachineA extends Machine {
                 this.split(message, callback);
             }, 1000);
 
+            this.isBusy = true;
+
             return 'ACK'
         }
     }
@@ -114,6 +116,8 @@ class MachineE extends Machine {
                 this.split(message, callback);
             }, 1000);
 
+            this.isBusy = true;
+
             return 'ACK'
         }
     }
@@ -153,6 +157,8 @@ class MachineT extends Machine {
                 this.split(message, callback);
             }, 1000);
 
+            this.isBusy = true;
+
             return 'ACK'
         }
     }
@@ -175,8 +181,18 @@ class MachineP extends Machine {
         super('P');
     }
 
-    async split(statement) {
+    acknowledge(message, callback) {
+        if (this.isBusy) {
+            return 'NAK';
+        } else {
+            setTimeout(() => { 
+                //this.split(message, callback);
+            }, 1000);
 
+            this.isBusy = true;
+
+            return 'ACK'
+        }
     }
 }
 
@@ -212,20 +228,19 @@ class MachineD extends Machine {
                 }
             }, 1000);
 
+            this.isBusy = true;
+            
             return 'ACK'
         }
     }
 
     async load(variable, callback) {
-        this.isBusy = true;
-
         callback(table.get(variable));
 
         this.isBusy = false;
     }
 
     async store(variable, value, callback) {
-        this.isBusy = true;
         this.table.set(variable, value);
 
         this.updatePage(variable, value);
@@ -234,7 +249,7 @@ class MachineD extends Machine {
         this.isBusy = false;
     }
 
-    async updatePage(variable, value) {
+    updatePage(variable, value) {
         if (document.getElementById('emptyTableMessage')) {
             // Clear empty map message
             document.getElementById('emptyTableMessage').remove();
@@ -313,6 +328,8 @@ function sendMessage(target, message, callback) {
 
             break;
         case 'P':
+            result = machineP.acknowledge(message, callback);
+
             break;
         case 'D':
             result = machineD.acknowledge(message, callback);
