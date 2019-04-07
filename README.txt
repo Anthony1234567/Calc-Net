@@ -15,11 +15,11 @@ Usage Requirements:
     Only same case variables across input(s)
 
 Running:
-    To start calculating load factory.html into a web browser and input the statements 
-    that need to be calculated. Ensure that all setup statements are processed first by placing 
-    them before the more complex inputs. Inputs are processed one at a time and their results 
-    can be seen in the table on Machine D. Once all inputs are processed the user will be p
-    rompted to refresh the page before processing more inputs.
+    To start calculating load src/html/factory.html into a web browser and input the statements 
+    that should be calculated. Ensure that all setup statements are processed first by placing 
+    them before the more complex inputs. The 'Calculate' button begins the process 
+    Inputs are processed one at a time and their results can be seen in the table on Machine D. 
+    Once all inputs are processed the user will be prompted to refresh the page before processing more inputs.
 
 Third Party Referrences:
     - Bootstrap for styling HTML
