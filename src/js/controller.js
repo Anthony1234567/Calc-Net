@@ -70,11 +70,11 @@ class MachineA extends Machine {
         if (this.isBusy) {
             return 'NAK';
         } else {
+            this.isBusy = true;
+
             setTimeout(() => { 
                 this.split(message.data, callback);
             }, 1000);
-
-            this.isBusy = true;
 
             return 'ACK';
         }
@@ -112,28 +112,60 @@ class MachineE extends Machine {
         if (this.isBusy) {
             return 'NAK';
         } else {
-            setTimeout(() => { 
-                this.split(message.data, callback);
-            }, 1000);
-
             this.isBusy = true;
+
+            setTimeout(() => { 
+                this.split(message.data.expression, callback);
+            }, 1000);
 
             return 'ACK';
         }
     }
 
     async split(expression, callback) {
-        const terms = expression.split('+');
+        term.split('+').forEach(term => {
+            // Split off each term and send each term to a T machine 
+            this.set(term, undefined);
 
-        // TODO: Iterate terms and send individual messages to T Machines
-        if (this.sendMessage('T', new Message('TERM', terms[1]), result => { 
-                console.log(result); 
+            const tInterval = setInterval(() => { 
+                if (sendMessage('T', new Message('TERM', { term: term}), result => {
+                        this.set(term, result);
+                    }) === 'ACK') {
+                    clearInterval(tInterval);
+                }
+            }, 100);
+        });
+
+        const termInterval = setInterval(() => { 
+            if (!this.terms.find(element => !element.value)) {
+                clearInterval(termInterval);
+
+                if (this.terms.length === 1) {
+                    callback(this.terms[0].value);
+                } else {
+                    callback(this.terms.reduce((termA, termB) => termA.value + termB.value));
+                }
+
                 this.isBusy = false;
-            }) === 'NAK') {
-            this.isBusy = false;
-        }
+            }
+        }, 100);
+    }
 
-        callback('MachineE done! ' + terms);
+    set(term, value) {
+        const existingFactor = this.get(term);
+
+        if (existingTerm) {
+            existingTerm.value = value;
+        } else {
+            this.terms.push({
+                term: term,
+                value: value
+            });
+        }
+    }
+
+    get(term) {
+        return this.terms.find(element => element.term === term);
     }
 }
 
@@ -143,7 +175,7 @@ class MachineE extends Machine {
  * it can be used directly. If the factor is a variable, it can send it to a D machine and get the result 
  * integer value back. If the factor is an exponentiation, it can send this to a P machine and get the result integer 
  * value back. It can then compute the product of all these values and return the result to its sender. 
- * It also has an array for temporary storage of the various factors it splits off.
+ * It also has an array for temporary storage of the various factors it splits off. 
  */
 class MachineT extends Machine {
     constructor() {
@@ -156,11 +188,12 @@ class MachineT extends Machine {
         if (this.isBusy) {
             return 'NAK';
         } else {
-            setTimeout(() => { 
-                this.split(message.data, callback);
-            }, 1000);
-
             this.isBusy = true;
+
+            setTimeout(() => { 
+                this.factors = [];
+                this.split(message.data.term, callback);
+            }, 1000);
 
             return 'ACK'
         }
@@ -196,7 +229,14 @@ class MachineT extends Machine {
         const factorInterval = setInterval(() => { 
             if (!this.factors.find(element => !element.value)) {
                 clearInterval(factorInterval);
-                callback(this.factors.reduce((factorA, factorB) => factorA.value * factorB.value));
+                
+                if (this.factors.length === 1) {
+                    callback(this.factors[0].value);
+                } else {
+                    callback(this.factors.reduce((factorA, factorB) => factorA.value * factorB.value));
+                }
+
+                this.isBusy = false;
             }
         }, 100);
     }
@@ -214,7 +254,7 @@ class MachineT extends Machine {
         }
     }
 
-    get() {
+    get(factor) {
         return this.factors.find(element => element.factor === factor);
     }
 }
@@ -234,11 +274,11 @@ class MachineP extends Machine {
         if (this.isBusy) {
             return 'NAK';
         } else {
+            this.isBusy = true;
+
             setTimeout(() => { 
                 this.evaluate(message.data.expression, callback);
             }, 1000);
-
-            this.isBusy = true;
 
             return 'ACK'
         }
@@ -279,6 +319,8 @@ class MachineD extends Machine {
         if (this.isBusy) {
             return 'NAK';
         } else {
+            this.isBusy = true;
+
             setTimeout(() => { 
                 switch (message.type) {
                     case 'LOAD':
@@ -293,8 +335,6 @@ class MachineD extends Machine {
                         console.warn('Unexpected message type: ' + message.type);
                 }
             }, 1000);
-
-            this.isBusy = true;
             
             return 'ACK';
         }
