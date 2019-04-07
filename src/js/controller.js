@@ -7,10 +7,59 @@
  * While it is busy, it returns other request messages with a NAK.
  */
 class Machine {
-    constructor(type) {
-        this.type = type
-        this.isBusy = false;
+    constructor(type, subtype) {
+        this.type = type,
+        this.subtype = subtype;
+        this._isBusy = false;
         this.data = [];
+        this.hasTable = false;
+    }
+
+    get type() {
+        return this._type;
+    } set type(type) {
+        this._type = type;
+
+        switch (type) {
+            case 'I':
+                this._typeFullName = 'Input';
+                break;
+            case 'A':
+                this._typeFullName = 'Assignment';
+                break;
+            case 'E':
+                this._typeFullName = 'Expression';
+                break;
+            case 'P':
+                this._typeFullName = 'Power';
+                break;
+            case 'T':
+                this._typeFullName = 'Term';
+                break;
+            case 'D':
+                this._typeFullName = 'Data';
+                break;
+            default:
+                this._typeFullName = '';
+        }
+    }
+
+    get isBusy() {
+        return this._isBusy;
+    } set isBusy(isBusy) {
+        this._isBusy = isBusy;
+
+        const machineStatusBadge = document.getElementById(this.type + (this.subtype ? this.subtype : '') + 'Badge');
+
+        if (isBusy) {
+            machineStatusBadge.innerText = 'Busy';
+            machineStatusBadge.classList.add('badge-danger');
+            machineStatusBadge.classList.remove('badge-success');
+        } else {
+            machineStatusBadge.innerText = 'Available';
+            machineStatusBadge.classList.remove('badge-danger');
+            machineStatusBadge.classList.add('badge-success');
+        }
     }
 
     sendMessage(target, message, callback) {
@@ -28,10 +77,26 @@ class Machine {
                 value: value
             });
         }
+
+        if (this.hasTable) {
+            this.updateTable();
+        }
     }
 
     get(key) {
         return this.data.find(element => element.key === key);
+    }
+
+    updateTable() {
+        const tableBody = document.getElementById(this.type + (this.subtype ? this.subtype : '') + 'Table').querySelector('tbody');
+        tableBody.innerHTML = '<th>' + this._typeFullName + '</th>' + '<th>Value</th>';
+
+        this.data.forEach(element => {
+            let rowElement = document.createElement('tr');
+            rowElement.id = element.key;
+            rowElement.innerHTML = '<td>' + element.key + '</td>' + '<td>' + element.value + '</td>';
+            tableBody.appendChild(rowElement);
+        });
     }
 }
 
@@ -128,6 +193,9 @@ class MachineA extends Machine {
     async split(statement, callback) {
         const sides = statement.split('=');
 
+        document.getElementById('lhs').innerText = sides[0];
+        document.getElementById('rhs').innerText = sides[1];
+
         if (this.sendMessage('E', new Message('EXPRESSION', { value: sides[1] }), result => { 
                 console.warn('Callback for message to D');
                 console.log('MachineA expression message to MachineE: ' + JSON.stringify({ value: sides[1] }));
@@ -144,6 +212,7 @@ class MachineA extends Machine {
                                 console.log('storedValue: ' + storedValue);
 
                                 clearInterval(dInterval);
+                                document.getElementById('rhs').innerText = result;
                                 callback(Number(result));
 
                                 this.isBusy = false;
@@ -169,6 +238,8 @@ class MachineA extends Machine {
 class MachineE extends Machine {
     constructor() {
         super('E');
+
+        this.hasTable = true;
     }
 
     acknowledge(message, callback) {
@@ -253,8 +324,10 @@ class MachineE extends Machine {
  * It also has an array for temporary storage of the various factors it splits off. 
  */
 class MachineT extends Machine {
-    constructor() {
-        super('T');
+    constructor(subtype) {
+        super('T', subtype);
+
+        this.hasTable = true;
     }
 
     acknowledge(message, callback) {
@@ -355,6 +428,8 @@ class MachineT extends Machine {
 class MachineP extends Machine {
     constructor() {
         super('P');
+
+        this.hasTable = true;
     }
 
     acknowledge(message, callback) {
@@ -380,8 +455,11 @@ class MachineP extends Machine {
         const base = powerExpression.split('^')[0];
         const exponent = powerExpression.split('^')[1];
 
+        this.set(powerExpression, undefined);
+
         if (isNumeric(base)) {
             setTimeout(() => { 
+                this.set(powerExpression, Math.pow(Number(base), Number(exponent)));
                 callback(Math.pow(Number(base), Number(exponent)));
 
                 this.isBusy = false;
@@ -398,6 +476,7 @@ class MachineP extends Machine {
                             console.log('result: ' + result);
 
                             clearInterval(dInterval);
+                            this.set(powerExpression, Math.pow(Number(base), Number(exponent)));
                             callback(Math.pow(Number(result), Number(exponent)));
 
                             this.isBusy = false;
@@ -421,6 +500,7 @@ class MachineD extends Machine {
 
         // Never reset
         this.data = new Map(); 
+        this.hasTable = true; // But false
     }
 
     acknowledge(message, callback) {
@@ -468,12 +548,7 @@ class MachineD extends Machine {
     }
 
     updatePage(key, value) {
-        if (document.getElementById('emptyTableMessage')) {
-            // Clear empty map message
-            document.getElementById('emptyTableMessage').remove();
-        }
-
-        const tableBody = document.getElementById('variableTable').querySelector('tbody');
+        const tableBody = document.getElementById('DTable').querySelector('tbody');
         const row = Array.from(tableBody.querySelectorAll('tr')).find(row => row.id === key);
 
         // Row for variable already exists

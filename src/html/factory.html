@@ -5,14 +5,14 @@
         
         <link rel="stylesheet" href="../css/styles.css">
         <script src="../js/controller.js"></script>
-
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
         <meta name="viewport" content="width=device-width, initial-scale=1">
     </head>
 
     <body>
-        <div class="card I">
-            <div class="container">
-                <b>Machine I</b>
+        <div class="cardUS I">
+            <div class="containerUS">
+                <b>Machine I <span id="IBadge" class="badge badge-success">Available</span></b>
                 
                 <input id="1"/>
                 <input id="2"/>
@@ -23,6 +23,8 @@
                 <center>
                     <button 
                         id="submit"
+                        type="button" 
+                        class="btn btn-primary"
                         onclick="calculate();">
                         Calculate
                     </button>
@@ -30,39 +32,70 @@
             </div>
         </div>
 
-        <div class="card A">
-            <div class="container">
-                <b>Machine A</b> 
+        <div class="cardUS A">
+            <div class="containerUS">
+                <b>Machine A <span id="ABadge" class="badge badge-success">Available</span></b>
+                <form class="form-horizontal">
+                    <div class="form-group">
+                    <label class="control-label col-sm-2" for="email">LHS</label>
+                        <div class="col-sm-10">
+                        <p id="lhs" class="form-control-static"></p>
+                        </div>
+                    </div>  
+
+                    <div class="form-group">
+                    <label class="control-label col-sm-2" for="email">RHS</label>
+                        <div class="col-sm-10">
+                        <p id="rhs" class="form-control-static"></p>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <div class="card E">
-            <div class="container">
-                <b>Machine E</b> 
+        <div class="cardUS E">
+            <div class="containerUS">
+                <b>Machine E <span id="EBadge" class="badge badge-success">Available</span></b>
+                <table id="ETable">
+                    <tr><th>Expression</th><th>Value</th></tr>
+                </table>   
             </div>
         </div>
         
-        <div class="card T">
-            <div class="container">
-                <b>Machine T</b> 
+        <div class="cardUS T1">
+            <div class="containerUS">
+                <b>Machine T <span id="T1Badge" class="badge badge-success">Available</span></b>
+                <table id="T1Table">
+                    <tr><th>Term</th><th>Value</th></tr>
+                </table> 
             </div>
         </div>
 
-        <div class="card P">
-            <div class="container">
-                <b>Machine P</b> 
+        <div class="cardUS T2">
+            <div class="containerUS">
+                <b>Machine T <span id="T2Badge" class="badge badge-success">Available</span></b>
+                <table id="T2Table">
+                    <tr><th>Term</th><th>Value</th></tr>
+                </table> 
             </div>
         </div>
 
-        <div class="card D">
-            <div class="container">
-                <b>Machine D</b> 
+        <div class="cardUS P">
+            <div class="containerUS">
+                <b>Machine P <span id="PBadge" class="badge badge-success">Available</span></b>
+                <table id="PTable">
+                    <tr><th>Power</th><th>Value</th></tr>
+                </table> 
+            </div>
+        </div>
 
-                <table id="variableTable">
+        <div class="cardUS D">
+            <div class="containerUS">
+                <b>Machine D <span id="DBadge" class="badge badge-success">Available</span></b> 
+
+                <table id="DTable">
                     <tr><th>Variable</th><th>Value</th></tr>
                 </table>
-
-                <center id="emptyTableMessage">No variables set.</center>
             </div>
         </div>
     </body>
@@ -89,8 +122,10 @@
                 document.getElementById('4').value,
                 document.getElementById('5').value
             ]}), result => {
-                console.log('Complete! Please refresh the page to process another set of equations.')
-                window.alert('Complete! Please refresh the page to process another set of equations.');
+                setTimeout(() => { 
+                    console.log('Complete! Please refresh the page to process another set of equations.')
+                    window.alert('Complete! Please refresh the page to process another set of equations.');
+                }, 2000);
             });
         
             document.getElementById('submit').disabled = true;
@@ -160,8 +195,8 @@
             machineI = new MachineI();
             machineA = new MachineA();
             machineE = new MachineE();
-            machineT1 = new MachineT();
-            machineT2 = new MachineT();
+            machineT1 = new MachineT(1);
+            machineT2 = new MachineT(2);
             machineP = new MachineP();
             machineD = new MachineD();
         }
