@@ -1,3 +1,7 @@
+/**
+ * @author: Anthony Martinez
+ */
+
 /** 
  * The machines are of 6 kinds: I, A, E, T, P, and D. They can send blocking messages to each other. 
  * When a machine is working on a message, it is not available for other work and replies with a NAK: not acknowledged. 
