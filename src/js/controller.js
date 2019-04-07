@@ -187,12 +187,29 @@ class MachineP extends Machine {
             return 'NAK';
         } else {
             setTimeout(() => { 
-                //this.split(message, callback);
+                this.evaluate(message.data, callback);
             }, 1000);
 
             this.isBusy = true;
 
             return 'ACK'
+        }
+    }
+
+    async evaluate(powerExpression, callback) {
+        const base = powerExpression.split('^')[0];
+        const exponent = powerExpression.split('^')[1];
+
+        if (isNumeric(base)) {
+            callback(Math.pow(base, exponent));
+
+            this.isBusy = false;
+        } else {
+            sendMessage('D', new Message('LOAD', { variable: base }), (result) => {
+                callback(Math.pow(result, exponent));
+
+                this.isBusy = false;
+            });
         }
     }
 }
@@ -236,7 +253,7 @@ class MachineD extends Machine {
     }
 
     async load(variable, callback) {
-        callback(table.get(variable));
+        callback(this.table.get(variable));
 
         this.isBusy = false;
     }
@@ -341,4 +358,8 @@ function sendMessage(target, message, callback) {
     }
 
     return result;
+}
+
+function isNumeric(value) {
+    return !isNaN(parseFloat(value)) && isFinite(value);
 }
