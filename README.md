@@ -18,6 +18,9 @@ To start calculating load factory.html into a web browser and input the statemen
 3. Z=X^2+4*Y
 ```
 
+## Message Direction
+![image](https://user-images.githubusercontent.com/6342285/55690415-326b8200-5946-11e9-9e73-cfbc0d112b5a.png)
+
 ## Sample Messsage Passing Between Machines (Can be executed from browser console)
 ```
 /**
