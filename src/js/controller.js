@@ -118,10 +118,6 @@ class MachineI extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineI');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -143,10 +139,6 @@ class MachineI extends Machine {
 
     async calculateStatement(assignment, callback) {
         if (this.sendMessage('A', new Message('ASSIGNMENT', { value: assignment }), result => { 
-                console.warn('Callback for message to A');
-                console.log('MachineI assignment message to MachineA: ' + JSON.stringify({ value: assignment }));
-                console.log('result: ' + result);
-
                 this.set(assignment, result);   
                 this.currentAssignment++;
 
@@ -176,10 +168,6 @@ class MachineA extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineA');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -201,20 +189,10 @@ class MachineA extends Machine {
         document.getElementById('rhs').innerText = sides[1];
 
         if (this.sendMessage('E', new Message('EXPRESSION', { value: sides[1] }), result => { 
-                console.warn('Callback for message to D');
-                console.log('MachineA expression message to MachineE: ' + JSON.stringify({ value: sides[1] }));
-                console.log('result: ' + result);
-
                 let dInterval = setInterval(() => {
                     if (dInterval) {
-                        console.log('In dInterval: ' + dInterval);
-
                         sendMessage('D', new Message('STORE', { key: sides[0], value: result }), storedValue => {
                             if (dInterval) {
-                                console.warn('Callback for message to D');
-                                console.log('MachineA store message to MachineD: ' + JSON.stringify({ key: sides[0], value: result }));
-                                console.log('storedValue: ' + storedValue);
-
                                 clearInterval(dInterval);
                                 document.getElementById('rhs').innerText = result;
                                 callback(Number(result));
@@ -247,10 +225,6 @@ class MachineE extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineE');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -277,14 +251,8 @@ class MachineE extends Machine {
                 // Split off each term and send each term to a T machine 
                 let tInterval = setInterval(() => {
                     if (tInterval) {
-                        console.log('In tInterval: ' + tInterval);
-
                         sendMessage('T', new Message('TERM', { value: term }), result => {
                             if (tInterval) {
-                                console.warn('Callback for message to T');
-                                console.log('MachineE term message to MachineT: ' + JSON.stringify({ value: term }));
-                                console.log('result: ' + result);
-
                                 clearInterval(tInterval);
                                 this.set(term, Number(result));
                             }                    
@@ -296,9 +264,6 @@ class MachineE extends Machine {
 
         let termInterval = setInterval(() => { 
             if (termInterval) {
-                console.log('In termInterval');
-                console.log(this.data);
-
                 if (!this.data.find(element => !element.value)) {
                     clearInterval(termInterval);
 
@@ -335,10 +300,6 @@ class MachineT extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineT');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -364,14 +325,8 @@ class MachineT extends Machine {
             } else if (factor.includes('^')) { // If the factor is an exponentiation, it can send this to a P machine and get the result integer value back
                 let pInterval = setInterval(() => { 
                     if (pInterval) {
-                        console.log('In pInterval: ' + pInterval);
-
                         sendMessage('P', new Message('POWER', { value: factor}), result => {
                             if (pInterval) {
-                                console.warn('Callback for message to P');
-                                console.log('MachineT power message to MachineP: ' + JSON.stringify({ value: factor }));
-                                console.log('result: ' + result);
-
                                 this.set(factor, Number(result));
                                 clearInterval(pInterval);
                             }
@@ -381,14 +336,8 @@ class MachineT extends Machine {
             } else { // If the factor is a variable, it can send it to a D machine and get the result integer value back
                 let dInterval = setInterval(() => { 
                     if (dInterval) {
-                        console.log('In dInterval: ' + dInterval);
-
                         sendMessage('D', new Message('LOAD', { key: factor }), result => {
                             if (dInterval) {
-                                console.warn('Callback for message to D');
-                                console.log('MachineT load message to MachineD: ' + JSON.stringify({ key: factor }));
-                                console.log('result: ' + result);
-
                                 this.set(factor, Number(result));
                                 clearInterval(dInterval);
                             }
@@ -400,9 +349,6 @@ class MachineT extends Machine {
 
         let factorInterval = setInterval(() => { 
             if (factorInterval) {
-                console.log('In factorInterval: ' + factorInterval);
-                console.log(this.data);
-
                 if (!this.data.find(element => !element.value)) {
                     clearInterval(factorInterval);
                     
@@ -437,10 +383,6 @@ class MachineP extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineP');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -471,14 +413,8 @@ class MachineP extends Machine {
         } else {
             let dInterval = setInterval(() => { 
                 if (dInterval) {
-                    console.log('In dInterval: ' + dInterval);
-
                     sendMessage('D', new Message('LOAD', { key: base }), result => {
                         if (dInterval) {
-                            console.warn('Callback for message to D');
-                            console.log('MachineP load message to MachineD: ' + JSON.stringify({ key: base }));
-                            console.log('result: ' + result);
-
                             clearInterval(dInterval);
                             this.set(powerExpression, Math.pow(Number(base), Number(exponent)));
                             callback(Math.pow(Number(result), Number(exponent)));
@@ -508,10 +444,6 @@ class MachineD extends Machine {
     }
 
     acknowledge(message, callback) {
-        console.log('MachineD');
-        console.log('message: ' + JSON.stringify(message));
-        console.log('isBusy: ' + this.isBusy);
-
         if (this.isBusy) {
             return 'NAK';
         } else {
