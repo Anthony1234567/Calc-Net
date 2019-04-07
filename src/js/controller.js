@@ -1,4 +1,5 @@
 /**
+ * Factory controller. Implements machine logic and message template
  * @author: Anthony Martinez
  */
 
