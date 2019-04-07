@@ -8,6 +8,9 @@ CECS 545: Software Architecture - Calc Net
 * At least `n-1` variables explicitly set 
 * Only same case variables across input(s)
 
+## Running
+To start calculating load factory.html into a web browser and input the statements that need to be calculated. Ensure that all setup statements are processed first by placing them before the more complex inputs. Inputs are processed one at a time and their results can be seen in the table on Machine D. Once all inputs are processed the user will be prompted to refresh the page before processing more inputs.
+
 ## Sample equation system
 ```
 1. X=4
@@ -15,7 +18,7 @@ CECS 545: Software Architecture - Calc Net
 3. Z=X^2+4*Y
 ```
 
-## Messsage Passing Between Machines
+## Sample Messsage Passing Between Machines (Can be executed from browser console)
 ```
 /**
  * Machine I - Input Message
