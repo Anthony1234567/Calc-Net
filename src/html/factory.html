@@ -88,9 +88,9 @@
                 document.getElementById('3').value,
                 document.getElementById('4').value,
                 document.getElementById('5').value
-            ]}), () => {
-                initMachines();
-                document.getElementById('submit').disabled = false;
+            ]}), result => {
+                console.log('Complete! Please refresh the page to process another set of equations.')
+                window.alert('Complete! Please refresh the page to process another set of equations.');
             });
         
             document.getElementById('submit').disabled = true;

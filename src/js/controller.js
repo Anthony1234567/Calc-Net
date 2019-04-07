@@ -57,16 +57,16 @@ class MachineI extends Machine {
             return 'NAK';
         } else {
             this.isBusy = true;
+            this.data = [];
+            this.currentAssignment = 0;
 
-            setTimeout(() => { 
-                message.data.value.forEach(input => {
-                    if (input) {
-                        this.set(input, undefined);
-                    }
-                });
+            message.data.value.forEach(input => {
+                if (input) {
+                    this.set(input, undefined);
+                }
+            });
 
-                this.calculateStatement(this.data[this.currentAssignment].key, callback);
-            }, 1000);
+            this.calculateStatement(this.data[this.currentAssignment].key, callback);
 
             return 'ACK';
         }
@@ -74,6 +74,7 @@ class MachineI extends Machine {
 
     async calculateStatement(assignment, callback) {
         if (this.sendMessage('A', new Message('ASSIGNMENT', { value: assignment }), result => { 
+                console.warn('Callback for message to A');
                 console.log('MachineI assignment message to MachineA: ' + JSON.stringify({ value: assignment }));
                 console.log('result: ' + result);
 
@@ -81,7 +82,7 @@ class MachineI extends Machine {
                 this.currentAssignment++;
 
                 if (this.data[this.currentAssignment]) {
-                    setTimeout(() => {     
+                    setTimeout(() => {
                         this.calculateStatement(this.data[this.currentAssignment].key, callback);
                     }, 1000);
                 } else {
@@ -114,6 +115,7 @@ class MachineA extends Machine {
             return 'NAK';
         } else {
             this.isBusy = true;
+            this.data = [];
 
             setTimeout(() => { 
                 this.split(message.data.value, callback);
@@ -127,16 +129,30 @@ class MachineA extends Machine {
         const sides = statement.split('=');
 
         if (this.sendMessage('E', new Message('EXPRESSION', { value: sides[1] }), result => { 
+                console.warn('Callback for message to D');
                 console.log('MachineA expression message to MachineE: ' + JSON.stringify({ value: sides[1] }));
                 console.log('result: ' + result);
 
-                sendMessage('D', new Message('STORE', { key: sides[0], value: result }), storedValue => {
-                    console.log('MachineA store message to MachineD: ' + JSON.stringify({ key: sides[0], value: result }));
-                    console.log('storedValue: ' + storedValue);
+                let dInterval = setInterval(() => {
+                    if (dInterval) {
+                        console.log('In dInterval: ' + dInterval);
 
-                    callback(result);
-                    this.isBusy = false;
-                });
+                        sendMessage('D', new Message('STORE', { key: sides[0], value: result }), storedValue => {
+                            if (dInterval) {
+                                console.warn('Callback for message to D');
+                                console.log('MachineA store message to MachineD: ' + JSON.stringify({ key: sides[0], value: result }));
+                                console.log('storedValue: ' + storedValue);
+
+                                clearInterval(dInterval);
+                                callback(Number(result));
+
+                                this.isBusy = false;
+                            }
+                        });
+                    }
+                }, 500);
+
+
             }) === 'NAK') {
             this.isBusy = false;
         }
@@ -164,6 +180,7 @@ class MachineE extends Machine {
             return 'NAK';
         } else {
             this.isBusy = true;
+            this.data = [];
 
             setTimeout(() => { 
                 this.split(message.data.value, callback);
@@ -175,34 +192,55 @@ class MachineE extends Machine {
 
     async split(expression, callback) {
         expression.split('+').forEach(term => {
-            // Split off each term and send each term to a T machine 
             this.set(term, undefined);
 
-            let tInterval = setInterval(() => { 
-                if (sendMessage('T', new Message('TERM', { value: term }), result => {
-                        console.log('MachineE term message to MachineT: ' + JSON.stringify({ value: term }));
-                        console.log('result: ' + result);
+            if (isNumeric(term)) {
+                setTimeout(() => { 
+                    this.set(term, Number(term));
+                }, 500);
+            } else {
+                // Split off each term and send each term to a T machine 
+                let tInterval = setInterval(() => {
+                    if (tInterval) {
+                        console.log('In tInterval: ' + tInterval);
 
-                        this.set(term, result);
-                    }) === 'ACK') {
-                    clearInterval(tInterval);
-                }
-            }, 100);
+                        sendMessage('T', new Message('TERM', { value: term }), result => {
+                            if (tInterval) {
+                                console.warn('Callback for message to T');
+                                console.log('MachineE term message to MachineT: ' + JSON.stringify({ value: term }));
+                                console.log('result: ' + result);
+
+                                clearInterval(tInterval);
+                                this.set(term, Number(result));
+                            }                    
+                        });
+                    }
+                }, 500);
+            }
         });
 
         let termInterval = setInterval(() => { 
-            if (!this.data.find(element => !element.value)) {
-                clearInterval(termInterval);
+            if (termInterval) {
+                console.log('In termInterval');
+                console.log(this.data);
 
-                if (this.data.length === 1) {
-                    callback(this.data[0].value);
-                } else {
-                    callback(this.data.reduce((termA, termB) =>  Number(termA.value) + Number(termB.value)));
+                if (!this.data.find(element => !element.value)) {
+                    clearInterval(termInterval);
+
+                    if (this.data.length === 1) {
+                        if (expression.includes('+')) {
+                            callback(Number(this.data[0].value) + Number(this.data[0].value));
+                        } else {
+                            callback(Number(this.data[0].value));
+                        }
+                    } else {
+                        callback(this.data.reduce((termA, termB) =>  Number(termA.value) + Number(termB.value)));
+                    }
+
+                    this.isBusy = false;
                 }
-
-                this.isBusy = false;
             }
-        }, 100);
+        }, 500);
     }
 }
 
@@ -228,9 +266,9 @@ class MachineT extends Machine {
             return 'NAK';
         } else {
             this.isBusy = true;
+            this.data = [];
 
             setTimeout(() => { 
-                this.factors = [];
                 this.split(message.data.value, callback);
             }, 1000);
 
@@ -240,50 +278,71 @@ class MachineT extends Machine {
 
     async split(term, callback) {
         term.split('*').forEach(factor => {
+            this.set(factor, undefined);
+
             if (isNumeric(factor)) { // If the factor is a constant, it can be used directly
-                this.set(factor, factor);
+                setTimeout(() => { 
+                    this.set(factor, Number(factor));
+                }, 1000);
             } else if (factor.includes('^')) { // If the factor is an exponentiation, it can send this to a P machine and get the result integer value back
-                this.set(factor, undefined);
+                let pInterval = setInterval(() => { 
+                    if (pInterval) {
+                        console.log('In pInterval: ' + pInterval);
 
-                const pInterval = setInterval(() => { 
-                    if (sendMessage('P', new Message('POWER', { value: factor}), result => {
-                            console.log('MachineT power message to MachineP: ' + JSON.stringify({ value: factor }));
-                            console.log('result: ' + result);
+                        sendMessage('P', new Message('POWER', { value: factor}), result => {
+                            if (pInterval) {
+                                console.warn('Callback for message to P');
+                                console.log('MachineT power message to MachineP: ' + JSON.stringify({ value: factor }));
+                                console.log('result: ' + result);
 
-                            this.set(factor, result);
-                        }) === 'ACK') {
-                        clearInterval(pInterval);
+                                this.set(factor, Number(result));
+                                clearInterval(pInterval);
+                            }
+                        });
                     }
-                }, 100);
+                }, 500);
             } else { // If the factor is a variable, it can send it to a D machine and get the result integer value back
-                this.set(factor, undefined);
-
                 let dInterval = setInterval(() => { 
-                    if (sendMessage('D', new Message('LOAD', { key: factor }), result => {
-                            console.log('MachineT load message to MachineD: ' + JSON.stringify({ key: factor }));
-                            console.log('result: ' + result);
+                    if (dInterval) {
+                        console.log('In dInterval: ' + dInterval);
 
-                            this.set(factor, result);
-                        }) === 'ACK') {
-                        clearInterval(dInterval);
+                        sendMessage('D', new Message('LOAD', { key: factor }), result => {
+                            if (dInterval) {
+                                console.warn('Callback for message to D');
+                                console.log('MachineT load message to MachineD: ' + JSON.stringify({ key: factor }));
+                                console.log('result: ' + result);
+
+                                this.set(factor, Number(result));
+                                clearInterval(dInterval);
+                            }
+                        });
                     }
-                }, 100);
+                }, 500);
             }
         });
 
         let factorInterval = setInterval(() => { 
-            if (!this.data.find(element => !element.value)) {
-                clearInterval(factorInterval);
-                
-                if (this.data.length === 1) {
-                    callback(this.data[0].value);
-                } else {
-                    callback(this.data.reduce((factorA, factorB) => Number(factorA.value) * Number(factorB.value)));
-                }
+            if (factorInterval) {
+                console.log('In factorInterval: ' + factorInterval);
+                console.log(this.data);
 
-                this.isBusy = false;
+                if (!this.data.find(element => !element.value)) {
+                    clearInterval(factorInterval);
+                    
+                    if (this.data.length === 1) {
+                        if (term.includes('*')) {
+                            callback(Number(this.data[0].value) * Number(this.data[0].value));
+                        } else {
+                            callback(Number(this.data[0].value));
+                        }
+                    } else {
+                        callback(this.data.reduce((factorA, factorB) => Number(factorA.value) * Number(factorB.value)));
+                    }
+
+                    this.isBusy = false;
+                }
             }
-        }, 100);
+        }, 500);
     }
 }
 
@@ -307,6 +366,7 @@ class MachineP extends Machine {
             return 'NAK';
         } else {
             this.isBusy = true;
+            this.data = [];
 
             setTimeout(() => { 
                 this.evaluate(message.data.value, callback);
@@ -321,18 +381,30 @@ class MachineP extends Machine {
         const exponent = powerExpression.split('^')[1];
 
         if (isNumeric(base)) {
-            callback(Math.pow(base, exponent));
-
-            this.isBusy = false;
-        } else {
-            sendMessage('D', new Message('LOAD', { key: base }), result => {
-                console.log('MachineP load message to MachineD: ' + JSON.stringify({ key: base }));
-                console.log('result: ' + result);
-
-                callback(Math.pow(result, exponent));
+            setTimeout(() => { 
+                callback(Math.pow(Number(base), Number(exponent)));
 
                 this.isBusy = false;
-            });
+            }, 500);
+        } else {
+            let dInterval = setInterval(() => { 
+                if (dInterval) {
+                    console.log('In dInterval: ' + dInterval);
+
+                    sendMessage('D', new Message('LOAD', { key: base }), result => {
+                        if (dInterval) {
+                            console.warn('Callback for message to D');
+                            console.log('MachineP load message to MachineD: ' + JSON.stringify({ key: base }));
+                            console.log('result: ' + result);
+
+                            clearInterval(dInterval);
+                            callback(Math.pow(Number(result), Number(exponent)));
+
+                            this.isBusy = false;
+                        }
+                    });
+                }
+            }, 500);
         }
     }
 }
@@ -347,7 +419,8 @@ class MachineD extends Machine {
     constructor() {
         super('D');
 
-        this.data = new Map();
+        // Never reset
+        this.data = new Map(); 
     }
 
     acknowledge(message, callback) {
@@ -380,13 +453,13 @@ class MachineD extends Machine {
     }
 
     async load(key, callback) {
-        callback(this.data.get(key));
+        callback(Number(this.data.get(key)));
 
         this.isBusy = false;
     }
 
     async store(key, value, callback) {
-        this.data.set(key, value);
+        this.data.set(key, Number(value));
 
         this.updatePage(key, value);
         callback('STORED');
