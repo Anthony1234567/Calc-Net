@@ -84,3 +84,6 @@ sendMessage('D', new Message('LOAD', { key: 'x' }), result => {
 
 ## Known Issues
 Please submit issue reports under [Issues](https://github.com/Anthony1234567/Calc-Net/issues)
+
+* Lines between machines not implemented.
+* Data displayed in P Machine sometimes shows NAN
