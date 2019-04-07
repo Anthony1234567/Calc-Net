@@ -10,10 +10,28 @@ class Machine {
     constructor(type) {
         this.type = type
         this.isBusy = false;
+        this.data = [];
     }
 
     sendMessage(target, message, callback) {
         return sendMessage(target, message, callback);
+    }
+
+    set(key, value) {
+        const existingElement = this.get(key);
+
+        if (existingElement) {
+            existingElement.value = value;
+        } else {
+            this.data.push({
+                key: key,
+                value: value
+            });
+        }
+    }
+
+    get(key) {
+        return this.data.find(element => element.key === key);
     }
 }
 
@@ -26,29 +44,50 @@ class Machine {
 class MachineI extends Machine {
     constructor() {
         super('I');
+
+        this.currentAssignment = 0;
     }
 
-    async calculate() {
-        this.isBusy = true;
-        this.statements = [
-            { value: document.getElementById('1').value, result: undefined },
-            { value: document.getElementById('2').value, result: undefined },
-            { value: document.getElementById('3').value, result: undefined },
-            { value: document.getElementById('4').value, result: undefined },
-            { value: document.getElementById('5').value, result: undefined }
-        ];
-        
-        for (var index = 0; index < 5; index++) {
-            if (this.statements[index].value) {
-                this.calculateStatement(this.statements[index]);
-            }
+    acknowledge(message, callback) {
+        console.log('MachineI');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
+        if (this.isBusy) {
+            return 'NAK';
+        } else {
+            this.isBusy = true;
+
+            setTimeout(() => { 
+                message.data.value.forEach(input => {
+                    if (input) {
+                        this.set(input, undefined);
+                    }
+                });
+
+                this.calculateStatement(this.data[this.currentAssignment].key, callback);
+            }, 1000);
+
+            return 'ACK';
         }
     }
 
-    calculateStatement(statement) {
-        if (this.sendMessage('A', new Message('STATEMENT', statement.value), result => { 
-                console.log(result); 
-                this.isBusy = false;
+    async calculateStatement(assignment, callback) {
+        if (this.sendMessage('A', new Message('ASSIGNMENT', { value: assignment }), result => { 
+                console.log('MachineI assignment message to MachineA: ' + JSON.stringify({ value: assignment }));
+                console.log('result: ' + result);
+
+                this.set(assignment, result);   
+                this.currentAssignment++;
+
+                if (this.data[this.currentAssignment]) {
+                    setTimeout(() => {     
+                        this.calculateStatement(this.data[this.currentAssignment].key, callback);
+                    }, 1000);
+                } else {
+                    callback();
+                    this.isBusy = false;
+                }
             }) === 'NAK') {
             this.isBusy = false;
         }
@@ -67,13 +106,17 @@ class MachineA extends Machine {
     }
 
     acknowledge(message, callback) {
+        console.log('MachineA');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
         if (this.isBusy) {
             return 'NAK';
         } else {
             this.isBusy = true;
 
             setTimeout(() => { 
-                this.split(message.data, callback);
+                this.split(message.data.value, callback);
             }, 1000);
 
             return 'ACK';
@@ -83,14 +126,20 @@ class MachineA extends Machine {
     async split(statement, callback) {
         const sides = statement.split('=');
 
-        if (this.sendMessage('E', new Message('RHS', sides[1]), result => { 
-                console.log(result); 
-                this.isBusy = false;
+        if (this.sendMessage('E', new Message('EXPRESSION', { value: sides[1] }), result => { 
+                console.log('MachineA expression message to MachineE: ' + JSON.stringify({ value: sides[1] }));
+                console.log('result: ' + result);
+
+                sendMessage('D', new Message('STORE', { key: sides[0], value: result }), storedValue => {
+                    console.log('MachineA store message to MachineD: ' + JSON.stringify({ key: sides[0], value: result }));
+                    console.log('storedValue: ' + storedValue);
+
+                    callback(result);
+                    this.isBusy = false;
+                });
             }) === 'NAK') {
             this.isBusy = false;
         }
-
-        callback('MachineA done! ' + sides);
     }
 }
 
@@ -104,18 +153,20 @@ class MachineA extends Machine {
 class MachineE extends Machine {
     constructor() {
         super('E');
-        
-        this.terms = []
     }
 
     acknowledge(message, callback) {
+        console.log('MachineE');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
         if (this.isBusy) {
             return 'NAK';
         } else {
             this.isBusy = true;
 
             setTimeout(() => { 
-                this.split(message.data.expression, callback);
+                this.split(message.data.value, callback);
             }, 1000);
 
             return 'ACK';
@@ -123,12 +174,15 @@ class MachineE extends Machine {
     }
 
     async split(expression, callback) {
-        term.split('+').forEach(term => {
+        expression.split('+').forEach(term => {
             // Split off each term and send each term to a T machine 
             this.set(term, undefined);
 
-            const tInterval = setInterval(() => { 
-                if (sendMessage('T', new Message('TERM', { term: term}), result => {
+            let tInterval = setInterval(() => { 
+                if (sendMessage('T', new Message('TERM', { value: term }), result => {
+                        console.log('MachineE term message to MachineT: ' + JSON.stringify({ value: term }));
+                        console.log('result: ' + result);
+
                         this.set(term, result);
                     }) === 'ACK') {
                     clearInterval(tInterval);
@@ -136,36 +190,19 @@ class MachineE extends Machine {
             }, 100);
         });
 
-        const termInterval = setInterval(() => { 
-            if (!this.terms.find(element => !element.value)) {
+        let termInterval = setInterval(() => { 
+            if (!this.data.find(element => !element.value)) {
                 clearInterval(termInterval);
 
-                if (this.terms.length === 1) {
-                    callback(this.terms[0].value);
+                if (this.data.length === 1) {
+                    callback(this.data[0].value);
                 } else {
-                    callback(this.terms.reduce((termA, termB) => termA.value + termB.value));
+                    callback(this.data.reduce((termA, termB) =>  Number(termA.value) + Number(termB.value)));
                 }
 
                 this.isBusy = false;
             }
         }, 100);
-    }
-
-    set(term, value) {
-        const existingFactor = this.get(term);
-
-        if (existingTerm) {
-            existingTerm.value = value;
-        } else {
-            this.terms.push({
-                term: term,
-                value: value
-            });
-        }
-    }
-
-    get(term) {
-        return this.terms.find(element => element.term === term);
     }
 }
 
@@ -180,11 +217,13 @@ class MachineE extends Machine {
 class MachineT extends Machine {
     constructor() {
         super('T');
-
-        this.factors = [];
     }
 
     acknowledge(message, callback) {
+        console.log('MachineT');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -192,7 +231,7 @@ class MachineT extends Machine {
 
             setTimeout(() => { 
                 this.factors = [];
-                this.split(message.data.term, callback);
+                this.split(message.data.value, callback);
             }, 1000);
 
             return 'ACK'
@@ -207,7 +246,10 @@ class MachineT extends Machine {
                 this.set(factor, undefined);
 
                 const pInterval = setInterval(() => { 
-                    if (sendMessage('P', new Message('POWER', { expression: factor}), result => {
+                    if (sendMessage('P', new Message('POWER', { value: factor}), result => {
+                            console.log('MachineT power message to MachineP: ' + JSON.stringify({ value: factor }));
+                            console.log('result: ' + result);
+
                             this.set(factor, result);
                         }) === 'ACK') {
                         clearInterval(pInterval);
@@ -216,8 +258,11 @@ class MachineT extends Machine {
             } else { // If the factor is a variable, it can send it to a D machine and get the result integer value back
                 this.set(factor, undefined);
 
-                const dInterval = setInterval(() => { 
-                    if (sendMessage('D', new Message('LOAD', { variable: factor }), result => {
+                let dInterval = setInterval(() => { 
+                    if (sendMessage('D', new Message('LOAD', { key: factor }), result => {
+                            console.log('MachineT load message to MachineD: ' + JSON.stringify({ key: factor }));
+                            console.log('result: ' + result);
+
                             this.set(factor, result);
                         }) === 'ACK') {
                         clearInterval(dInterval);
@@ -226,36 +271,19 @@ class MachineT extends Machine {
             }
         });
 
-        const factorInterval = setInterval(() => { 
-            if (!this.factors.find(element => !element.value)) {
+        let factorInterval = setInterval(() => { 
+            if (!this.data.find(element => !element.value)) {
                 clearInterval(factorInterval);
                 
-                if (this.factors.length === 1) {
-                    callback(this.factors[0].value);
+                if (this.data.length === 1) {
+                    callback(this.data[0].value);
                 } else {
-                    callback(this.factors.reduce((factorA, factorB) => factorA.value * factorB.value));
+                    callback(this.data.reduce((factorA, factorB) => Number(factorA.value) * Number(factorB.value)));
                 }
 
                 this.isBusy = false;
             }
         }, 100);
-    }
-
-    set(factor, value) {
-        const existingFactor = this.get(factor);
-
-        if (existingFactor) {
-            existingFactor.value = value;
-        } else {
-            this.factors.push({
-                factor: factor,
-                value: value
-            });
-        }
-    }
-
-    get(factor) {
-        return this.factors.find(element => element.factor === factor);
     }
 }
 
@@ -271,13 +299,17 @@ class MachineP extends Machine {
     }
 
     acknowledge(message, callback) {
+        console.log('MachineP');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
         if (this.isBusy) {
             return 'NAK';
         } else {
             this.isBusy = true;
 
             setTimeout(() => { 
-                this.evaluate(message.data.expression, callback);
+                this.evaluate(message.data.value, callback);
             }, 1000);
 
             return 'ACK'
@@ -293,7 +325,10 @@ class MachineP extends Machine {
 
             this.isBusy = false;
         } else {
-            sendMessage('D', new Message('LOAD', { variable: base }), result => {
+            sendMessage('D', new Message('LOAD', { key: base }), result => {
+                console.log('MachineP load message to MachineD: ' + JSON.stringify({ key: base }));
+                console.log('result: ' + result);
+
                 callback(Math.pow(result, exponent));
 
                 this.isBusy = false;
@@ -312,10 +347,14 @@ class MachineD extends Machine {
     constructor() {
         super('D');
 
-        this.table = new Map();
+        this.data = new Map();
     }
 
     acknowledge(message, callback) {
+        console.log('MachineD');
+        console.log('message: ' + JSON.stringify(message));
+        console.log('isBusy: ' + this.isBusy);
+
         if (this.isBusy) {
             return 'NAK';
         } else {
@@ -324,11 +363,11 @@ class MachineD extends Machine {
             setTimeout(() => { 
                 switch (message.type) {
                     case 'LOAD':
-                        this.load(message.data.variable, callback);
+                        this.load(message.data.key, callback);
 
                         break;
                     case 'STORE':
-                        this.store(message.data.variable, message.data.value, callback);
+                        this.store(message.data.key, message.data.value, callback);
 
                         break;
                     default:
@@ -340,37 +379,37 @@ class MachineD extends Machine {
         }
     }
 
-    async load(variable, callback) {
-        callback(this.table.get(variable));
+    async load(key, callback) {
+        callback(this.data.get(key));
 
         this.isBusy = false;
     }
 
-    async store(variable, value, callback) {
-        this.table.set(variable, value);
+    async store(key, value, callback) {
+        this.data.set(key, value);
 
-        this.updatePage(variable, value);
+        this.updatePage(key, value);
         callback('STORED');
 
         this.isBusy = false;
     }
 
-    updatePage(variable, value) {
+    updatePage(key, value) {
         if (document.getElementById('emptyTableMessage')) {
             // Clear empty map message
             document.getElementById('emptyTableMessage').remove();
         }
 
         const tableBody = document.getElementById('variableTable').querySelector('tbody');
-        const row = Array.from(tableBody.querySelectorAll('tr')).find(row => row.id === ('variable' + variable));
+        const row = Array.from(tableBody.querySelectorAll('tr')).find(row => row.id === key);
 
         // Row for variable already exists
         if (row) {
             row.querySelectorAll('td')[1].innerText = value;
         } else {
             let rowElement = document.createElement('tr');
-            rowElement.id = 'variable' + variable;
-            rowElement.innerHTML = '<td>' + variable + '</td>' + '<td>' + value + '</td>';
+            rowElement.id = key;
+            rowElement.innerHTML = '<td>' + key + '</td>' + '<td>' + value + '</td>';
 
             tableBody.appendChild(rowElement);
         }
@@ -385,69 +424,4 @@ class Message {
         this.type = type;
         this.data = data;
     }
-}
-
-const machineI = new MachineI();
-const machineA = new MachineA();
-const machineE = new MachineE();
-const machineT1 = new MachineT();
-const machineT2 = new MachineT();
-const machineP = new MachineP();
-const machineD = new MachineD();
-
-/**
- * Onclick handler. Starts processing user inputs
- */
-function calculate() {
-    machineI.calculate();
-}
-
-/**
- * Handles/directs the message sending between machines
- * @param {String} target: Target machine type.  
- * @param {Message} message: Message containing type and data
- * @param {Function} callback: Callback method to call when reciever is done processing message
- * @returns Result of reciever acknowledgement [NAK | ACK]
- */
-function sendMessage(target, message, callback) {
-    var result;
-
-    switch (target) {
-        case 'I':
-            break;
-        case 'A':
-            result = machineA.acknowledge(message, callback);
-
-            break;
-        case 'E':
-            result = machineE.acknowledge(message, callback);
-
-            break;
-        case 'T': // We have two copies of the T machine, but only one copy of the other kinds.
-            if (machineT1.acknowledge(message, callback) === 'ACK') {
-                result = 'ACK';
-            } else if (machineT2.acknowledge(message, callback) === 'ACK') {
-                result = 'ACK'
-            } else {
-                result = 'NAK';
-            }
-
-            break;
-        case 'P':
-            result = machineP.acknowledge(message, callback);
-
-            break;
-        case 'D':
-            result = machineD.acknowledge(message, callback);
-        
-            break;
-        default:
-            console.warn('Unexpected target: ' + target);
-    }
-
-    return result;
-}
-
-function isNumeric(value) {
-    return !isNaN(parseFloat(value)) && isFinite(value);
 }

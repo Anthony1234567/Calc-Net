@@ -21,7 +21,9 @@
                 <input id="5"/>
 
                 <center>
-                    <button onclick="calculate();">
+                    <button 
+                        id="submit"
+                        onclick="calculate();">
                         Calculate
                     </button>
                 </center>
@@ -64,4 +66,101 @@
             </div>
         </div>
     </body>
+
+    <script>
+        let machineI, machineA, machineE, machineT1, machineT2, machineP, machineD;
+
+        (function() {
+            initMachines();
+        })();
+
+        /**
+         * Onclick handler. Starts processing user inputs
+         */
+        function calculate() {
+            //machineI.calculate();
+            sendMessage('I', new Message('INPUT', { value: [
+                document.getElementById('1').value,
+                document.getElementById('2').value,
+                document.getElementById('3').value,
+                document.getElementById('4').value,
+                document.getElementById('5').value
+            ]}), () => {
+                initMachines();
+                document.getElementById('submit').disabled = false;
+            });
+        
+            document.getElementById('submit').disabled = true;
+        }
+        
+        /**
+         * Handles/directs the message sending between machines
+         * @param {String} target: Target machine type.  
+         * @param {Message} message: Message containing type and data
+         * @param {Function} callback: Callback method to call when reciever is done processing message
+         * @returns Result of reciever acknowledgement [NAK | ACK]
+         */
+        function sendMessage(target, message, callback) {
+            var result;
+        
+            switch (target) {
+                case 'I':
+                    result = machineI.acknowledge(message, callback);
+        
+                    break;
+                case 'A':
+                    result = machineA.acknowledge(message, callback);
+        
+                    break;
+                case 'E':
+                    result = machineE.acknowledge(message, callback);
+        
+                    break;
+                case 'T': // We have two copies of the T machine, but only one copy of the other kinds.
+                    if (machineT1.acknowledge(message, callback) === 'ACK') {
+                        result = 'ACK';
+                    } else if (machineT2.acknowledge(message, callback) === 'ACK') {
+                        result = 'ACK'
+                    } else {
+                        result = 'NAK';
+                    }
+        
+                    break;
+                case 'P':
+                    result = machineP.acknowledge(message, callback);
+        
+                    break;
+                case 'D':
+                    result = machineD.acknowledge(message, callback);
+                
+                    break;
+                default:
+                    console.warn('Unexpected target: ' + target);
+            }
+        
+            return result;
+        }
+        
+        /**
+         * Determines if a given value is a number
+         * @param {any} value: value in question
+         * @returns: true if value is a numeric value, false otherwise 
+         */
+        function isNumeric(value) {
+            return !isNaN(parseFloat(value)) && isFinite(value);
+        }
+        
+        /**
+         * Initializes machines after every run
+         */
+         function initMachines() {
+            machineI = new MachineI();
+            machineA = new MachineA();
+            machineE = new MachineE();
+            machineT1 = new MachineT();
+            machineT2 = new MachineT();
+            machineP = new MachineP();
+            machineD = new MachineD();
+        }
+    </script>
 </html>

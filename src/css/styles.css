@@ -39,9 +39,9 @@ button {
     background-color: #49581A;
     color: white;
 }
-  
-button:hover {
-    background-color: #394a0a;
+
+button:disabled {
+    background-color: grey;
 }
 
 th, td {
