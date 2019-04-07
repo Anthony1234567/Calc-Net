@@ -11,6 +11,9 @@ CECS 545: Software Architecture - Calc Net
 ## Running
 To start calculating load factory.html into a web browser and input the statements that need to be calculated. Ensure that all setup statements are processed first by placing them before the more complex inputs. Inputs are processed one at a time and their results can be seen in the table on Machine D. Once all inputs are processed the user will be prompted to refresh the page before processing more inputs.
 
+## Third Party Referrences
+* Bootstrap for styling HTML
+
 ## Sample equation system
 ```
 1. X=4
