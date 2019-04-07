@@ -76,5 +76,8 @@ sendMessage('D', new Message('LOAD', { key: 'x' }), result => {
 });
 ```
 
+## Sample Run
+<img width="1440" alt="Screen Shot 2019-04-07 at 3 09 43 PM" src="https://user-images.githubusercontent.com/6342285/55690482-4499f000-5947-11e9-9596-b9b5cd32cb6a.png">
+
 ## Known Issues
 Please submit issue reports under [Issues](https://github.com/Anthony1234567/Calc-Net/issues)
