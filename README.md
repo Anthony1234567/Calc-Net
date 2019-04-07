@@ -15,9 +15,6 @@ CECS 545: Software Architecture - Calc Net
 3. Z=X^2+4*Y
 ```
 
-## Known Issues
-Please submit issue reports under [Issues](https://github.com/Anthony1234567/Calc-Net/issues)
-
 ## Messsage Passing Between Machines
 ```
 /**
@@ -72,3 +69,6 @@ sendMessage('D', new Message('LOAD', { key: 'x' }), result => {
     console.log(result);
 });
 ```
+
+## Known Issues
+Please submit issue reports under [Issues](https://github.com/Anthony1234567/Calc-Net/issues)
