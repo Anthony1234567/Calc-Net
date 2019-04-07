@@ -1,5 +1,12 @@
 CECS 545: Software Architecture - Calc Net
 
+Team AS2:
+Members:
+    Anthony Martinez
+    Akshay Patil
+    Sujata Patil
+    Srija
+
 Usage Requirements:
     Supports systems of equations with at most 5 unique variables
     Supported Operators: +, *, ^
