@@ -19,7 +19,7 @@ To start calculating load factory.html into a web browser and input the statemen
 ```
 
 ## Message Direction
-![image](https://user-images.githubusercontent.com/6342285/55690415-326b8200-5946-11e9-9e73-cfbc0d112b5a.png)
+<img width="715" alt="Screen Shot 2019-04-07 at 3 04 48 PM" src="https://user-images.githubusercontent.com/6342285/55690457-de14d200-5946-11e9-8a3d-1dc5ab7f7f2d.png">
 
 ## Sample Messsage Passing Between Machines (Can be executed from browser console)
 ```
