@@ -76,7 +76,7 @@ class MachineA extends Machine {
 
             this.isBusy = true;
 
-            return 'ACK'
+            return 'ACK';
         }
     }
 
@@ -110,7 +110,7 @@ class MachineE extends Machine {
 
     acknowledge(message, callback) {
         if (this.isBusy) {
-            return 'NAK'
+            return 'NAK';
         } else {
             setTimeout(() => { 
                 this.split(message.data, callback);
@@ -118,7 +118,7 @@ class MachineE extends Machine {
 
             this.isBusy = true;
 
-            return 'ACK'
+            return 'ACK';
         }
     }
 
@@ -148,6 +148,8 @@ class MachineE extends Machine {
 class MachineT extends Machine {
     constructor() {
         super('T');
+
+        this.factors = [];
     }
 
     acknowledge(message, callback) {
@@ -165,9 +167,55 @@ class MachineT extends Machine {
     }
 
     async split(term, callback) {
-        const factors = term.split('*');
+        term.split('*').forEach(factor => {
+            if (isNumeric(factor)) { // If the factor is a constant, it can be used directly
+                this.set(factor, factor);
+            } else if (factor.includes('^')) { // If the factor is an exponentiation, it can send this to a P machine and get the result integer value back
+                this.set(factor, undefined);
 
-        callback('MachineT done! ' + factors);
+                const pInterval = setInterval(() => { 
+                    if (sendMessage('P', new Message('POWER', { expression: factor}), result => {
+                            this.set(factor, result);
+                        }) === 'ACK') {
+                        clearInterval(pInterval);
+                    }
+                }, 100);
+            } else { // If the factor is a variable, it can send it to a D machine and get the result integer value back
+                this.set(factor, undefined);
+
+                const dInterval = setInterval(() => { 
+                    if (sendMessage('D', new Message('LOAD', { variable: factor }), result => {
+                            this.set(factor, result);
+                        }) === 'ACK') {
+                        clearInterval(dInterval);
+                    }
+                }, 100);
+            }
+        });
+
+        const factorInterval = setInterval(() => { 
+            if (!this.factors.find(element => !element.value)) {
+                clearInterval(factorInterval);
+                callback(this.factors.reduce((factorA, factorB) => factorA.value * factorB.value));
+            }
+        }, 100);
+    }
+
+    set(factor, value) {
+        const existingFactor = this.get(factor);
+
+        if (existingFactor) {
+            existingFactor.value = value;
+        } else {
+            this.factors.push({
+                factor: factor,
+                value: value
+            });
+        }
+    }
+
+    get() {
+        return this.factors.find(element => element.factor === factor);
     }
 }
 
@@ -187,7 +235,7 @@ class MachineP extends Machine {
             return 'NAK';
         } else {
             setTimeout(() => { 
-                this.evaluate(message.data, callback);
+                this.evaluate(message.data.expression, callback);
             }, 1000);
 
             this.isBusy = true;
@@ -205,7 +253,7 @@ class MachineP extends Machine {
 
             this.isBusy = false;
         } else {
-            sendMessage('D', new Message('LOAD', { variable: base }), (result) => {
+            sendMessage('D', new Message('LOAD', { variable: base }), result => {
                 callback(Math.pow(result, exponent));
 
                 this.isBusy = false;
@@ -248,7 +296,7 @@ class MachineD extends Machine {
 
             this.isBusy = true;
             
-            return 'ACK'
+            return 'ACK';
         }
     }
 
